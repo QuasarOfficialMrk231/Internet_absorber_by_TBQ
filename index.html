@@ -45,11 +45,6 @@
             background-color: #2980b9;
             transform: scale(1.1);
         }
-        .content {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-        }
         .stats {
             font-size: 1.5rem;
             margin-top: 30px;
@@ -90,26 +85,24 @@
     </style>
 </head>
 <body>
-    <div class="content">
-        <h1>Тестирование нагрузки на сеть и кэширование</h1>
-        <p>Этот сайт предназначен для тестирования нагрузки на сеть и использования кеширования данных в браузере. Нажмите на кнопку ниже, чтобы начать тест, который будет загружать видео в кеш вашего браузера с увеличенной частотой запросов. Для остановки теста нажмите снова на кнопку.</p>
+    <h1>Тестирование нагрузки на сеть и кэширование</h1>
+    <p>Этот сайт предназначен для тестирования нагрузки на сеть и использования кеширования данных в браузере. Нажмите на кнопку ниже, чтобы начать тест, который будет загружать видео в кеш вашего браузера с увеличенной частотой запросов. Для остановки теста нажмите снова на кнопку.</p>
 
-        <button id="toggleButton">Включить нагрузку</button>
-        <p id="timer"></p>
+    <button id="toggleButton">Включить нагрузку</button>
+    <p id="timer"></p>
 
-        <div class="stats">
-            <p id="dataUsed">Использовано интернета: 0 МБ</p>
-            <p id="speed">Текущая скорость: 0 Мбит/с</p>
-        </div>
-
-        <a class="github-link" href="https://github.com/quasarofficialmrk231" target="_blank">
-            <img class="github-icon" src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub Logo">
-            Мои проекты на GitHub
-        </a>
-
-        <p class="release-date">Release Date: 5 March 14:00 Moscow time</p>
-        <p class="author">by TBQ (TheBlackQuasar)</p>
+    <div class="stats">
+        <p id="dataUsed">Использовано интернета: 0 МБ</p>
+        <p id="speed">Текущая скорость: 0 Мбит/с</p>
     </div>
+
+    <a class="github-link" href="https://github.com/quasarofficialmrk231" target="_blank">
+        <img class="github-icon" src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub Logo">
+        Мои проекты на GitHub
+    </a>
+
+    <p class="release-date">Release Date: 5 March 14:00 Moscow time</p>
+    <p class="author">by TBQ (TheBlackQuasar)</p>
 
     <script>
         const videoUrl = "https://www.youtube.com/watch?v=TbNL81LoPoM";
@@ -120,27 +113,29 @@
         let lastTime = Date.now();
         let currentSpeed = 0;
         let countdownInterval;
-        const maxRequests = 10;
 
         async function loadAndCacheVideo() {
             try {
-                const requests = [];
-                for (let i = 0; i < maxRequests; i++) {
-                    requests.push(fetch(videoUrl + '?cache=' + Math.random(), { mode: 'no-cors', cache: 'no-store' }));
-                }
-                const responses = await Promise.all(requests);
+                const response = await fetch(videoUrl, { mode: 'no-cors', cache: 'no-store' });
 
-                const dataSize = 1024 * 1024 * maxRequests; // Примерный размер данных
+                const dataSize = 1024 * 1024; 
                 totalDataUsed += dataSize;
                 updateStats(dataSize);
-
             } catch (error) {
                 console.error('Ошибка при загрузке видео:', error);
             }
         }
 
+        async function clearCache() {
+            const cacheNames = await caches.keys();
+            for (let cacheName of cacheNames) {
+                await caches.delete(cacheName);
+            }
+            console.log('Кеш очищен. Все видео удалены.');
+        }
+
         function startLoadTest() {
-            loadInterval = setInterval(loadAndCacheVideo, 50);
+            loadInterval = setInterval(loadAndCacheVideo, 100);
             setTimeout(clearCache, 600000);
             console.log("Нагрузка включена");
         }
@@ -179,14 +174,6 @@
                 `Использовано интернета: ${(totalDataUsed / (1024 * 1024)).toFixed(2)} МБ`;
             document.getElementById("speed").innerText = 
                 `Текущая скорость: ${currentSpeed.toFixed(2)} Мбит/с`;
-        }
-
-        async function clearCache() {
-            const cacheNames = await caches.keys();
-            for (let cacheName of cacheNames) {
-                await caches.delete(cacheName);
-            }
-            console.log('Кеш очищен. Все видео удалены.');
         }
 
         function startCountdown(seconds) {
