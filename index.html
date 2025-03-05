@@ -1,1 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Network Load Test with Cache</title>
+</head>
+<body>
+    <h1>Network Load Testing with Cache Storage</h1>
+    <script>
+        async function loadAndCacheVideo() {
+            const videoUrl = "https://www.youtube.com/watch?v=TbNL81LoPoM";
 
+            try {
+                // Отправляем запрос на загрузку видео
+                const response = await fetch(videoUrl, { mode: 'no-cors', cache: 'no-store' });
+
+                if (response.ok || response.type === 'opaque') {
+                    // Создаем или открываем кеш
+                    const cache = await caches.open('video-cache');
+                    // Кладем ответ в кеш с уникальным ключом
+                    await cache.put(videoUrl + '?cache=' + Math.random(), response);
+                    console.log('Видео загружено в кеш:', videoUrl);
+                } else {
+                    console.error('Ошибка загрузки видео:', response.status);
+                }
+            } catch (error) {
+                console.error('Ошибка при загрузке видео:', error);
+            }
+        }
+
+        function startLoadTest() {
+            setInterval(loadAndCacheVideo, 1000); // Загружать видео каждую секунду
+        }
+
+        startLoadTest();
+    </script>
+</body>
+</html>
