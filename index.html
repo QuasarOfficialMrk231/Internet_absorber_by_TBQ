@@ -55,28 +55,6 @@
             color: #e74c3c;
             margin-top: 20px;
         }
-        .github-link {
-            margin-top: 50px;
-            display: inline-flex;
-            align-items: center;
-            text-decoration: none;
-            font-size: 1.2rem;
-            color: #333;
-            background-color: #ffffff;
-            padding: 10px 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-            transition: background-color 0.3s, transform 0.3s;
-        }
-        .github-link:hover {
-            background-color: #f0f0f0;
-            transform: scale(1.05);
-        }
-        .github-icon {
-            width: 24px;
-            height: 24px;
-            margin-right: 10px;
-        }
         .release-date, .author {
             font-size: 1rem;
             color: #555;
@@ -86,7 +64,7 @@
 </head>
 <body>
     <h1>Тестирование нагрузки на сеть и кэширование</h1>
-    <p>Этот сайт предназначен для тестирования нагрузки на сеть и использования кеширования данных в браузере. Нажмите на кнопку ниже, чтобы начать тест, который будет загружать видео в кеш вашего браузера с увеличенной частотой запросов. Для остановки теста нажмите снова на кнопку.</p>
+    <p>Этот сайт предназначен для тестирования нагрузки на сеть и использования кеширования данных в браузере. Нажмите на кнопку ниже, чтобы начать тест, который будет загружать видео в кеш вашего браузера. Для остановки теста нажмите снова на кнопку.</p>
 
     <button id="toggleButton">Включить нагрузку</button>
     <p id="timer"></p>
@@ -95,11 +73,6 @@
         <p id="dataUsed">Использовано интернета: 0 МБ</p>
         <p id="speed">Текущая скорость: 0 Мбит/с</p>
     </div>
-
-    <a class="github-link" href="https://github.com/quasarofficialmrk231" target="_blank">
-        <img class="github-icon" src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub Logo">
-        Мои проекты на GitHub
-    </a>
 
     <p class="release-date">Release Date: 5 March 14:00 Moscow time</p>
     <p class="author">by TBQ (TheBlackQuasar)</p>
@@ -113,16 +86,27 @@
         let lastTime = Date.now();
         let currentSpeed = 0;
         let countdownInterval;
+        let abortController = new AbortController();
 
         async function loadAndCacheVideo() {
             try {
-                const response = await fetch(videoUrl, { mode: 'no-cors', cache: 'no-store' });
+                abortController = new AbortController();
+                const response = await fetch(videoUrl, {
+                    mode: 'no-cors',
+                    cache: 'no-store',
+                    signal: abortController.signal
+                });
 
                 const dataSize = 1024 * 1024; 
                 totalDataUsed += dataSize;
                 updateStats(dataSize);
+
             } catch (error) {
-                console.error('Ошибка при загрузке видео:', error);
+                if (error.name === 'AbortError') {
+                    console.log('Загрузка прервана.');
+                } else {
+                    console.error('Ошибка при загрузке видео:', error);
+                }
             }
         }
 
@@ -142,6 +126,7 @@
 
         function stopLoadTest() {
             clearInterval(loadInterval);
+            abortController.abort(); // Немедленно остановить все активные загрузки
             clearCache();
             console.log("Нагрузка остановлена");
         }
