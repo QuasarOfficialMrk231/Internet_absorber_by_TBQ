@@ -1,11 +1,65 @@
 <!DOCTYPE html>
-<html>
+<html lang="ru">
 <head>
-    <title>Network Load Test with Cache</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Тест нагрузки на сеть с использованием кеша</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin-top: 50px;
+        }
+        p {
+            color: #7f8c8d;
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        button {
+            width: 150px;
+            height: 150px;
+            font-size: 1.2rem;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+            transition: background-color 0.3s, transform 0.3s;
+            margin-top: 40px;
+        }
+        button:hover {
+            background-color: #2980b9;
+            transform: scale(1.1);
+        }
+        button:active {
+            background-color: #1c6396;
+            transform: scale(1);
+        }
+        .content {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Network Load Testing with Cache Storage</h1>
-    <button id="toggleButton">Включить нагрузку</button>
+    <div class="content">
+        <h1>Тестирование нагрузки на сеть и кэширование</h1>
+        <p>Этот сайт предназначен для тестирования нагрузки на сеть и использования кеширования данных в браузере. Нажмите на кнопку ниже, чтобы начать тест, который будет загружать видео в кеш вашего браузера с увеличенной частотой запросов. Для остановки теста нажмите снова на кнопку. Вы можете наблюдать за процессом загрузки и его влиянием на скорость сети.</p>
+
+        <!-- Кнопка включения/выключения нагрузки -->
+        <button id="toggleButton">Включить нагрузку</button>
+    </div>
 
     <script>
         const videoUrl = "https://www.youtube.com/watch?v=TbNL81LoPoM"; // Ссылка на видео 8K
