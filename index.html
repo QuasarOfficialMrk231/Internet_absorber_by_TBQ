@@ -6,15 +6,15 @@
 <body>
     <h1>Network Load Testing with Cache Storage</h1>
     <script>
-        async function loadAndCacheVideo() {
-            const videoUrl = "https://www.youtube.com/watch?v=TbNL81LoPoM";
+        const videoUrl = "https://www.youtube.com/watch?v=TbNL81LoPoM"; // Ссылка на видео 8K
 
+        async function loadAndCacheVideo() {
             try {
-                // Отправляем запрос на загрузку видео
+                // Загружаем видео с YouTube
                 const response = await fetch(videoUrl, { mode: 'no-cors', cache: 'no-store' });
 
                 if (response.ok || response.type === 'opaque') {
-                    // Создаем или открываем кеш
+                    // Открываем кеш или создаем новый
                     const cache = await caches.open('video-cache');
                     // Кладем ответ в кеш с уникальным ключом
                     await cache.put(videoUrl + '?cache=' + Math.random(), response);
@@ -27,8 +27,18 @@
             }
         }
 
+        async function clearCacheAfterTimeout() {
+            setTimeout(async () => {
+                // Очищаем кеш через 10 минут
+                const cache = await caches.open('video-cache');
+                await cache.delete(videoUrl + '?cache=' + Math.random());
+                console.log('Видео удалено из кеша через 10 минут');
+            }, 600000); // 600000 миллисекунд = 10 минут
+        }
+
         function startLoadTest() {
             setInterval(loadAndCacheVideo, 1000); // Загружать видео каждую секунду
+            clearCacheAfterTimeout(); // Удалить видео из кеша через 10 минут
         }
 
         startLoadTest();
