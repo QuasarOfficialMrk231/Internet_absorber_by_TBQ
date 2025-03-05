@@ -37,18 +37,28 @@
             transition: background-color 0.3s, transform 0.3s;
             margin-top: 40px;
         }
-        button:hover {
+        button:disabled {
+            background-color: #95a5a6;
+            cursor: not-allowed;
+        }
+        button:hover:enabled {
             background-color: #2980b9;
             transform: scale(1.1);
-        }
-        button:active {
-            background-color: #1c6396;
-            transform: scale(1);
         }
         .content {
             max-width: 1000px;
             margin: 0 auto;
             padding: 20px;
+        }
+        .stats {
+            font-size: 1.5rem;
+            margin-top: 30px;
+            color: #34495e;
+        }
+        #timer {
+            font-size: 1.2rem;
+            color: #e74c3c;
+            margin-top: 20px;
         }
     </style>
 </head>
@@ -59,12 +69,24 @@
 
         <!-- Кнопка включения/выключения нагрузки -->
         <button id="toggleButton">Включить нагрузку</button>
+        <p id="timer"></p>
+
+        <!-- Счетчики использования интернета -->
+        <div class="stats">
+            <p id="dataUsed">Использовано интернета: 0 МБ</p>
+            <p id="speed">Текущая скорость: 0 Мбит/с</p>
+        </div>
     </div>
 
     <script>
         const videoUrl = "https://www.youtube.com/watch?v=TbNL81LoPoM"; // Ссылка на видео 8K
         let loadInterval;
         let isLoading = false;
+        let lastLoadTime = 0; // Время последнего включения нагрузки
+        let totalDataUsed = 0; // Счетчик общего объема данных в байтах
+        let lastTime = Date.now(); // Для расчета скорости загрузки
+        let currentSpeed = 0; // Скорость загрузки в Мбит/с
+        let countdownInterval; // Интервал для таймера обратного отсчета
 
         // Функция для загрузки видео и сохранения в кэш
         async function loadAndCacheVideo() {
@@ -74,7 +96,12 @@
                 if (response.ok || response.type === 'opaque') {
                     const cache = await caches.open('video-cache');
                     await cache.put(videoUrl + '?cache=' + Math.random(), response);
-                    console.log('Видео загружено в кеш:', videoUrl);
+
+                    const contentLength = response.headers.get('content-length');
+                    const dataSize = contentLength ? parseInt(contentLength) : 1024 * 1024; 
+
+                    totalDataUsed += dataSize;
+                    updateStats(dataSize);
                 } else {
                     console.error('Ошибка загрузки видео:', response.status);
                 }
@@ -83,31 +110,31 @@
             }
         }
 
-        // Удаление кэша через 10 минут
-        async function clearCacheAfterTimeout() {
-            setTimeout(async () => {
-                const cache = await caches.open('video-cache');
-                await cache.delete(videoUrl + '?cache=' + Math.random());
-                console.log('Видео удалено из кеша через 10 минут');
-            }, 600000); // 600000 миллисекунд = 10 минут
+        // Удаление всех видео из кеша
+        async function clearCache() {
+            const cache = await caches.open('video-cache');
+            const keys = await cache.keys();
+            for (let request of keys) {
+                await cache.delete(request);
+            }
+            console.log('Кеш очищен. Все видео удалены.');
         }
 
-        // Увеличенная нагрузка (уменьшение интервала между запросами до 100 мс)
         function startLoadTest() {
-            // Загружать видео каждые 100 миллисекунд для увеличенной нагрузки
-            loadInterval = setInterval(loadAndCacheVideo, 100); 
-            clearCacheAfterTimeout(); // Удалить видео через 10 минут
+            loadInterval = setInterval(loadAndCacheVideo, 100);
+            setTimeout(clearCache, 600000); // Очистка через 10 минут
             console.log("Нагрузка включена");
         }
 
-        // Функция для остановки нагрузки
         function stopLoadTest() {
-            clearInterval(loadInterval); 
+            clearInterval(loadInterval);
+            clearCache();
             console.log("Нагрузка остановлена");
         }
 
-        // Функция для переключения нагрузки
         function toggleLoad() {
+            const currentTime = Date.now();
+
             if (isLoading) {
                 stopLoadTest();
                 document.getElementById("toggleButton").innerText = "Включить нагрузку";
@@ -115,10 +142,49 @@
                 startLoadTest();
                 document.getElementById("toggleButton").innerText = "Выключить нагрузку";
             }
+
+            lastLoadTime = currentTime;
             isLoading = !isLoading;
+
+            if (!isLoading) {
+                startCountdown(30);
+            }
         }
 
-        // Добавляем обработчик события на кнопку
+        function updateStats(dataSize) {
+            const now = Date.now();
+            const timeDiff = (now - lastTime) / 1000; 
+
+            currentSpeed = (dataSize * 8) / (timeDiff * 1000000); 
+            lastTime = now;
+
+            document.getElementById("dataUsed").innerText = 
+                `Использовано интернета: ${(totalDataUsed / (1024 * 1024)).toFixed(2)} МБ`;
+            document.getElementById("speed").innerText = 
+                `Текущая скорость: ${currentSpeed.toFixed(2)} Мбит/с`;
+        }
+
+        function startCountdown(seconds) {
+            const button = document.getElementById("toggleButton");
+            const timer = document.getElementById("timer");
+
+            button.disabled = true;
+            let remainingTime = seconds;
+
+            clearInterval(countdownInterval);
+            countdownInterval = setInterval(() => {
+                remainingTime--;
+
+                timer.innerText = `До следующего включения: ${remainingTime} сек.`;
+
+                if (remainingTime <= 0) {
+                    clearInterval(countdownInterval);
+                    timer.innerText = "";
+                    button.disabled = false;
+                }
+            }, 1000);
+        }
+
         document.getElementById("toggleButton").addEventListener("click", toggleLoad);
     </script>
 </body>
