@@ -94,23 +94,19 @@
         <h1>Тестирование нагрузки на сеть и кэширование</h1>
         <p>Этот сайт предназначен для тестирования нагрузки на сеть и использования кеширования данных в браузере. Нажмите на кнопку ниже, чтобы начать тест, который будет загружать видео в кеш вашего браузера с увеличенной частотой запросов. Для остановки теста нажмите снова на кнопку.</p>
 
-        <!-- Кнопка включения/выключения нагрузки -->
         <button id="toggleButton">Включить нагрузку</button>
         <p id="timer"></p>
 
-        <!-- Счетчики использования интернета -->
         <div class="stats">
             <p id="dataUsed">Использовано интернета: 0 МБ</p>
             <p id="speed">Текущая скорость: 0 Мбит/с</p>
         </div>
 
-        <!-- Кнопка-ссылка на GitHub -->
         <a class="github-link" href="https://github.com/quasarofficialmrk231" target="_blank">
             <img class="github-icon" src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub Logo">
             Мои проекты на GitHub
         </a>
 
-        <!-- Дата релиза и автор проекта -->
         <p class="release-date">Release Date: 5 March 14:00 Moscow time</p>
         <p class="author">by TBQ (TheBlackQuasar)</p>
     </div>
@@ -124,39 +120,27 @@
         let lastTime = Date.now();
         let currentSpeed = 0;
         let countdownInterval;
+        const maxRequests = 10;
 
         async function loadAndCacheVideo() {
             try {
-                const response = await fetch(videoUrl, { mode: 'no-cors', cache: 'no-store' });
-
-                if (response.ok || response.type === 'opaque') {
-                    const cache = await caches.open('video-cache');
-                    await cache.put(videoUrl + '?cache=' + Math.random(), response);
-
-                    const contentLength = response.headers.get('content-length');
-                    const dataSize = contentLength ? parseInt(contentLength) : 1024 * 1024;
-
-                    totalDataUsed += dataSize;
-                    updateStats(dataSize);
-                } else {
-                    console.error('Ошибка загрузки видео:', response.status);
+                const requests = [];
+                for (let i = 0; i < maxRequests; i++) {
+                    requests.push(fetch(videoUrl + '?cache=' + Math.random(), { mode: 'no-cors', cache: 'no-store' }));
                 }
+                const responses = await Promise.all(requests);
+
+                const dataSize = 1024 * 1024 * maxRequests; // Примерный размер данных
+                totalDataUsed += dataSize;
+                updateStats(dataSize);
+
             } catch (error) {
                 console.error('Ошибка при загрузке видео:', error);
             }
         }
 
-        async function clearCache() {
-            const cache = await caches.open('video-cache');
-            const keys = await cache.keys();
-            for (let request of keys) {
-                await cache.delete(request);
-            }
-            console.log('Кеш очищен. Все видео удалены.');
-        }
-
         function startLoadTest() {
-            loadInterval = setInterval(loadAndCacheVideo, 100);
+            loadInterval = setInterval(loadAndCacheVideo, 50);
             setTimeout(clearCache, 600000);
             console.log("Нагрузка включена");
         }
@@ -195,6 +179,14 @@
                 `Использовано интернета: ${(totalDataUsed / (1024 * 1024)).toFixed(2)} МБ`;
             document.getElementById("speed").innerText = 
                 `Текущая скорость: ${currentSpeed.toFixed(2)} Мбит/с`;
+        }
+
+        async function clearCache() {
+            const cacheNames = await caches.keys();
+            for (let cacheName of cacheNames) {
+                await caches.delete(cacheName);
+            }
+            console.log('Кеш очищен. Все видео удалены.');
         }
 
         function startCountdown(seconds) {
