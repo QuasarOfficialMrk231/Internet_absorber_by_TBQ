@@ -5,18 +5,20 @@
 </head>
 <body>
     <h1>Network Load Testing with Cache Storage</h1>
+    <button id="toggleButton">Включить нагрузку</button>
+
     <script>
         const videoUrl = "https://www.youtube.com/watch?v=TbNL81LoPoM"; // Ссылка на видео 8K
+        let loadInterval;
+        let isLoading = false;
 
+        // Функция для загрузки видео и сохранения в кэш
         async function loadAndCacheVideo() {
             try {
-                // Загружаем видео с YouTube
                 const response = await fetch(videoUrl, { mode: 'no-cors', cache: 'no-store' });
 
                 if (response.ok || response.type === 'opaque') {
-                    // Открываем кеш или создаем новый
                     const cache = await caches.open('video-cache');
-                    // Кладем ответ в кеш с уникальным ключом
                     await cache.put(videoUrl + '?cache=' + Math.random(), response);
                     console.log('Видео загружено в кеш:', videoUrl);
                 } else {
@@ -27,21 +29,43 @@
             }
         }
 
+        // Удаление кэша через 10 минут
         async function clearCacheAfterTimeout() {
             setTimeout(async () => {
-                // Очищаем кеш через 10 минут
                 const cache = await caches.open('video-cache');
                 await cache.delete(videoUrl + '?cache=' + Math.random());
                 console.log('Видео удалено из кеша через 10 минут');
             }, 600000); // 600000 миллисекунд = 10 минут
         }
 
+        // Функция для увеличения нагрузки (уменьшение интервала между запросами)
         function startLoadTest() {
-            setInterval(loadAndCacheVideo, 1000); // Загружать видео каждую секунду
-            clearCacheAfterTimeout(); // Удалить видео из кеша через 10 минут
+            // Загружать видео каждые 500 миллисекунд (увеличенная частота)
+            loadInterval = setInterval(loadAndCacheVideo, 500); 
+            clearCacheAfterTimeout(); // Удалить видео через 10 минут
+            console.log("Нагрузка включена");
         }
 
-        startLoadTest();
+        // Функция для остановки нагрузки
+        function stopLoadTest() {
+            clearInterval(loadInterval); 
+            console.log("Нагрузка остановлена");
+        }
+
+        // Функция для переключения нагрузки
+        function toggleLoad() {
+            if (isLoading) {
+                stopLoadTest();
+                document.getElementById("toggleButton").innerText = "Включить нагрузку";
+            } else {
+                startLoadTest();
+                document.getElementById("toggleButton").innerText = "Выключить нагрузку";
+            }
+            isLoading = !isLoading;
+        }
+
+        // Добавляем обработчик события на кнопку
+        document.getElementById("toggleButton").addEventListener("click", toggleLoad);
     </script>
 </body>
 </html>
