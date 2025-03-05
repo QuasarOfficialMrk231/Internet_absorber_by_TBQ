@@ -60,12 +60,39 @@
             color: #e74c3c;
             margin-top: 20px;
         }
+        .github-link {
+            margin-top: 50px;
+            display: inline-flex;
+            align-items: center;
+            text-decoration: none;
+            font-size: 1.2rem;
+            color: #333;
+            background-color: #ffffff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s, transform 0.3s;
+        }
+        .github-link:hover {
+            background-color: #f0f0f0;
+            transform: scale(1.05);
+        }
+        .github-icon {
+            width: 24px;
+            height: 24px;
+            margin-right: 10px;
+        }
+        .release-date, .author {
+            font-size: 1rem;
+            color: #555;
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="content">
         <h1>Тестирование нагрузки на сеть и кэширование</h1>
-        <p>Этот сайт предназначен для тестирования нагрузки на сеть и использования кеширования данных в браузере. Нажмите на кнопку ниже, чтобы начать тест, который будет загружать видео в кеш вашего браузера с увеличенной частотой запросов. Для остановки теста нажмите снова на кнопку. Вы можете наблюдать за процессом загрузки и его влиянием на скорость сети.</p>
+        <p>Этот сайт предназначен для тестирования нагрузки на сеть и использования кеширования данных в браузере. Нажмите на кнопку ниже, чтобы начать тест, который будет загружать видео в кеш вашего браузера с увеличенной частотой запросов. Для остановки теста нажмите снова на кнопку.</p>
 
         <!-- Кнопка включения/выключения нагрузки -->
         <button id="toggleButton">Включить нагрузку</button>
@@ -76,19 +103,28 @@
             <p id="dataUsed">Использовано интернета: 0 МБ</p>
             <p id="speed">Текущая скорость: 0 Мбит/с</p>
         </div>
+
+        <!-- Кнопка-ссылка на GitHub -->
+        <a class="github-link" href="https://github.com/quasarofficialmrk231" target="_blank">
+            <img class="github-icon" src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="GitHub Logo">
+            Мои проекты на GitHub
+        </a>
+
+        <!-- Дата релиза и автор проекта -->
+        <p class="release-date">Release Date: 5 March 14:00 Moscow time</p>
+        <p class="author">by TBQ (TheBlackQuasar)</p>
     </div>
 
     <script>
-        const videoUrl = "https://www.youtube.com/watch?v=TbNL81LoPoM"; // Ссылка на видео 8K
+        const videoUrl = "https://www.youtube.com/watch?v=TbNL81LoPoM";
         let loadInterval;
         let isLoading = false;
-        let lastLoadTime = 0; // Время последнего включения нагрузки
-        let totalDataUsed = 0; // Счетчик общего объема данных в байтах
-        let lastTime = Date.now(); // Для расчета скорости загрузки
-        let currentSpeed = 0; // Скорость загрузки в Мбит/с
-        let countdownInterval; // Интервал для таймера обратного отсчета
+        let lastLoadTime = 0;
+        let totalDataUsed = 0;
+        let lastTime = Date.now();
+        let currentSpeed = 0;
+        let countdownInterval;
 
-        // Функция для загрузки видео и сохранения в кэш
         async function loadAndCacheVideo() {
             try {
                 const response = await fetch(videoUrl, { mode: 'no-cors', cache: 'no-store' });
@@ -98,7 +134,7 @@
                     await cache.put(videoUrl + '?cache=' + Math.random(), response);
 
                     const contentLength = response.headers.get('content-length');
-                    const dataSize = contentLength ? parseInt(contentLength) : 1024 * 1024; 
+                    const dataSize = contentLength ? parseInt(contentLength) : 1024 * 1024;
 
                     totalDataUsed += dataSize;
                     updateStats(dataSize);
@@ -110,7 +146,6 @@
             }
         }
 
-        // Удаление всех видео из кеша
         async function clearCache() {
             const cache = await caches.open('video-cache');
             const keys = await cache.keys();
@@ -122,7 +157,7 @@
 
         function startLoadTest() {
             loadInterval = setInterval(loadAndCacheVideo, 100);
-            setTimeout(clearCache, 600000); // Очистка через 10 минут
+            setTimeout(clearCache, 600000);
             console.log("Нагрузка включена");
         }
 
@@ -133,8 +168,6 @@
         }
 
         function toggleLoad() {
-            const currentTime = Date.now();
-
             if (isLoading) {
                 stopLoadTest();
                 document.getElementById("toggleButton").innerText = "Включить нагрузку";
@@ -143,7 +176,7 @@
                 document.getElementById("toggleButton").innerText = "Выключить нагрузку";
             }
 
-            lastLoadTime = currentTime;
+            lastLoadTime = Date.now();
             isLoading = !isLoading;
 
             if (!isLoading) {
@@ -153,9 +186,9 @@
 
         function updateStats(dataSize) {
             const now = Date.now();
-            const timeDiff = (now - lastTime) / 1000; 
+            const timeDiff = (now - lastTime) / 1000;
 
-            currentSpeed = (dataSize * 8) / (timeDiff * 1000000); 
+            currentSpeed = (dataSize * 8) / (timeDiff * 1000000);
             lastTime = now;
 
             document.getElementById("dataUsed").innerText = 
@@ -174,7 +207,6 @@
             clearInterval(countdownInterval);
             countdownInterval = setInterval(() => {
                 remainingTime--;
-
                 timer.innerText = `До следующего включения: ${remainingTime} сек.`;
 
                 if (remainingTime <= 0) {
