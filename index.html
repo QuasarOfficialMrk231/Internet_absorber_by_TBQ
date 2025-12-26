@@ -1,187 +1,146 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Тест нагрузки на сеть с использованием кеша</title>
-    <style>
-        body {
-            font-family: 'Arial', sans-serif;
-            text-align: center;
-            margin: 0;
-            padding: 0;
-            background-color: #f0f0f0;
-        }
-        h1 {
-            color: #2c3e50;
-            font-size: 2.5rem;
-            margin-top: 50px;
-        }
-        p {
-            color: #7f8c8d;
-            font-size: 1.2rem;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        button {
-            width: 150px;
-            height: 150px;
-            font-size: 1.2rem;
-            background-color: #3498db;
-            color: white;
-            border: none;
-            border-radius: 50%;
-            cursor: pointer;
-            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
-            transition: background-color 0.3s, transform 0.3s;
-            margin-top: 40px;
-        }
-        button:disabled {
-            background-color: #95a5a6;
-            cursor: not-allowed;
-        }
-        button:hover:enabled {
-            background-color: #2980b9;
-            transform: scale(1.1);
-        }
-        .stats {
-            font-size: 1.5rem;
-            margin-top: 30px;
-            color: #34495e;
-        }
-        #timer {
-            font-size: 1.2rem;
-            color: #e74c3c;
-            margin-top: 20px;
-        }
-        .release-date, .author {
-            font-size: 1rem;
-            color: #555;
-            margin-top: 20px;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>test</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+    background-color: #f0f0f0;
+}
+h1 {
+    color: #2c3e50;
+    font-size: 2.5rem;
+    margin-top: 60px;
+}
+button {
+    width: 150px;
+    height: 150px;
+    font-size: 1.2rem;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s, transform 0.3s;
+    margin-top: 50px;
+}
+button:hover:enabled {
+    background-color: #2980b9;
+    transform: scale(1.1);
+}
+button:disabled {
+    background-color: #95a5a6;
+    cursor: not-allowed;
+}
+.stats {
+    font-size: 1.4rem;
+    margin-top: 40px;
+    color: #34495e;
+}
+.author {
+    margin-top: 50px;
+    font-size: 1rem;
+    color: #555;
+}
+</style>
 </head>
+
 <body>
-    <h1>Тестирование нагрузки на сеть и кэширование</h1>
-    <p>Этот сайт предназначен для тестирования нагрузки на сеть и использования кеширования данных в браузере. Нажмите на кнопку ниже, чтобы начать тест, который будет загружать видео в кеш вашего браузера. Для остановки теста нажмите снова на кнопку.</p>
 
-    <button id="toggleButton">Включить нагрузку</button>
-    <p id="timer"></p>
+<h1>тест</h1>
 
-    <div class="stats">
-        <p id="dataUsed">Использовано интернета: 0 МБ</p>
-        <p id="speed">Текущая скорость: 0 Мбит/с</p>
-    </div>
+<button id="btn">начать</button>
 
-    <p class="release-date">Release Date: 5 March 14:00 Moscow time</p>
-    <p class="author">by TBQ (TheBlackQuasar)</p>
+<div class="stats">
+    <p id="speed">скорость: 0 мбит/с</p>
+    <p id="traffic">трафик: 0 мб</p>
+</div>
 
-    <script>
-        const videoUrl = "https://www.youtube.com/watch?v=TbNL81LoPoM";
-        let loadInterval;
-        let isLoading = false;
-        let lastLoadTime = 0;
-        let totalDataUsed = 0;
-        let lastTime = Date.now();
-        let currentSpeed = 0;
-        let countdownInterval;
-        let abortController = new AbortController();
+<p class="author">by TBQ</p>
 
-        async function loadAndCacheVideo() {
-            try {
-                abortController = new AbortController();
-                const response = await fetch(videoUrl, {
-                    mode: 'no-cors',
-                    cache: 'no-store',
-                    signal: abortController.signal
-                });
+<script>
+const TEST_URL = "https://speed.hetzner.de/10GB.bin";
+const THREADS = 6;
 
-                const dataSize = 1024 * 1024; 
-                totalDataUsed += dataSize;
-                updateStats(dataSize);
+let controllers = [];
+let isRunning = false;
 
-            } catch (error) {
-                if (error.name === 'AbortError') {
-                    console.log('Загрузка прервана.');
-                } else {
-                    console.error('Ошибка при загрузке видео:', error);
-                }
-            }
-        }
+let totalBytes = 0;
+let lastBytes = 0;
+let lastTime = performance.now();
+let statsInterval;
 
-        async function clearCache() {
-            const cacheNames = await caches.keys();
-            for (let cacheName of cacheNames) {
-                await caches.delete(cacheName);
-            }
-            console.log('Кеш очищен. Все видео удалены.');
-        }
+async function downloadStream(signal) {
+    const response = await fetch(TEST_URL, {
+        cache: "no-store",
+        signal
+    });
 
-        function startLoadTest() {
-            loadInterval = setInterval(loadAndCacheVideo, 100);
-            setTimeout(clearCache, 600000);
-            console.log("Нагрузка включена");
-        }
+    const reader = response.body.getReader();
 
-        function stopLoadTest() {
-            clearInterval(loadInterval);
-            abortController.abort(); // Немедленно остановить все активные загрузки
-            clearCache();
-            console.log("Нагрузка остановлена");
-        }
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        totalBytes += value.length;
+    }
+}
 
-        function toggleLoad() {
-            if (isLoading) {
-                stopLoadTest();
-                document.getElementById("toggleButton").innerText = "Включить нагрузку";
-            } else {
-                startLoadTest();
-                document.getElementById("toggleButton").innerText = "Выключить нагрузку";
-            }
+function updateStats() {
+    const now = performance.now();
+    const timeDiff = (now - lastTime) / 1000;
+    const bytesDiff = totalBytes - lastBytes;
 
-            lastLoadTime = Date.now();
-            isLoading = !isLoading;
+    const speedMbps = (bytesDiff * 8) / (timeDiff * 1e6);
 
-            if (!isLoading) {
-                startCountdown(30);
-            }
-        }
+    document.getElementById("speed").textContent =
+        `скорость: ${speedMbps.toFixed(2)} мбит/с`;
 
-        function updateStats(dataSize) {
-            const now = Date.now();
-            const timeDiff = (now - lastTime) / 1000;
+    document.getElementById("traffic").textContent =
+        `трафик: ${(totalBytes / 1024 / 1024).toFixed(2)} мб`;
 
-            currentSpeed = (dataSize * 8) / (timeDiff * 1000000);
-            lastTime = now;
+    lastTime = now;
+    lastBytes = totalBytes;
+}
 
-            document.getElementById("dataUsed").innerText = 
-                `Использовано интернета: ${(totalDataUsed / (1024 * 1024)).toFixed(2)} МБ`;
-            document.getElementById("speed").innerText = 
-                `Текущая скорость: ${currentSpeed.toFixed(2)} Мбит/с`;
-        }
+function startTest() {
+    totalBytes = 0;
+    lastBytes = 0;
+    lastTime = performance.now();
+    controllers = [];
 
-        function startCountdown(seconds) {
-            const button = document.getElementById("toggleButton");
-            const timer = document.getElementById("timer");
+    for (let i = 0; i < THREADS; i++) {
+        const controller = new AbortController();
+        controllers.push(controller);
+        downloadStream(controller.signal).catch(() => {});
+    }
 
-            button.disabled = true;
-            let remainingTime = seconds;
+    statsInterval = setInterval(updateStats, 500);
+}
 
-            clearInterval(countdownInterval);
-            countdownInterval = setInterval(() => {
-                remainingTime--;
-                timer.innerText = `До следующего включения: ${remainingTime} сек.`;
+function stopTest() {
+    controllers.forEach(c => c.abort());
+    clearInterval(statsInterval);
+}
 
-                if (remainingTime <= 0) {
-                    clearInterval(countdownInterval);
-                    timer.innerText = "";
-                    button.disabled = false;
-                }
-            }, 1000);
-        }
+document.getElementById("btn").onclick = () => {
+    if (!isRunning) {
+        isRunning = true;
+        document.getElementById("btn").textContent = "остановить";
+        startTest();
+    } else {
+        isRunning = false;
+        document.getElementById("btn").textContent = "начать";
+        stopTest();
+    }
+};
+</script>
 
-        document.getElementById("toggleButton").addEventListener("click", toggleLoad);
-    </script>
 </body>
 </html>
