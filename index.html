@@ -13,11 +13,6 @@ body {
     padding: 0;
     background-color: #f0f0f0;
 }
-h1 {
-    color: #2c3e50;
-    font-size: 2.5rem;
-    margin-top: 60px;
-}
 button {
     width: 150px;
     height: 150px;
@@ -27,13 +22,11 @@ button {
     border: none;
     border-radius: 50%;
     cursor: pointer;
-    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.2);
-    transition: background-color 0.3s, transform 0.3s;
     margin-top: 50px;
 }
 button:hover:enabled {
     background-color: #2980b9;
-    transform: scale(1.1);
+    transform: scale(1.05);
 }
 button:disabled {
     background-color: #95a5a6;
@@ -54,8 +47,6 @@ button:disabled {
 
 <body>
 
-<h1>тест</h1>
-
 <button id="btn">начать</button>
 
 <div class="stats">
@@ -66,38 +57,19 @@ button:disabled {
 <p class="author">by TBQ</p>
 
 <script>
-const TEST_URL = "https://speed.hetzner.de/10GB.bin";
-const THREADS = 6;
-
-let controllers = [];
+const TEST_URL = "https://speedtest.selectel.ru/10GB";
+let controller;
 let isRunning = false;
-
 let totalBytes = 0;
 let lastBytes = 0;
 let lastTime = performance.now();
-let statsInterval;
+let timerInterval;
 
-async function downloadStream(signal) {
-    const response = await fetch(TEST_URL, {
-        cache: "no-store",
-        signal
-    });
-
-    const reader = response.body.getReader();
-
-    while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        totalBytes += value.length;
-    }
-}
-
-function updateStats() {
+function updateUI() {
     const now = performance.now();
-    const timeDiff = (now - lastTime) / 1000;
-    const bytesDiff = totalBytes - lastBytes;
-
-    const speedMbps = (bytesDiff * 8) / (timeDiff * 1e6);
+    const dt = (now - lastTime) / 1000;
+    const db = totalBytes - lastBytes;
+    const speedMbps = (db * 8) / (dt * 1e6);
 
     document.getElementById("speed").textContent =
         `скорость: ${speedMbps.toFixed(2)} мбит/с`;
@@ -109,35 +81,57 @@ function updateStats() {
     lastBytes = totalBytes;
 }
 
-function startTest() {
+async function startTest() {
     totalBytes = 0;
     lastBytes = 0;
     lastTime = performance.now();
-    controllers = [];
 
-    for (let i = 0; i < THREADS; i++) {
-        const controller = new AbortController();
-        controllers.push(controller);
-        downloadStream(controller.signal).catch(() => {});
+    controller = new AbortController();
+    try {
+        const response = await fetch(TEST_URL, {
+            cache: "no-store",
+            signal: controller.signal
+        });
+
+        const reader = response.body.getReader();
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            totalBytes += value.length;
+            updateUI();
+        }
+    } catch (e) {
+        // остановка
     }
-
-    statsInterval = setInterval(updateStats, 500);
 }
 
-function stopTest() {
-    controllers.forEach(c => c.abort());
-    clearInterval(statsInterval);
+function startCooldown(seconds) {
+    const btn = document.getElementById("btn");
+    btn.disabled = true;
+    let t = seconds;
+    btn.textContent = `подождать ${t}`;
+
+    timerInterval = setInterval(() => {
+        t--;
+        btn.textContent = `подождать ${t}`;
+        if (t <= 0) {
+            clearInterval(timerInterval);
+            btn.disabled = false;
+            btn.textContent = "начать";
+        }
+    }, 1000);
 }
 
-document.getElementById("btn").onclick = () => {
+document.getElementById("btn").onclick = async () => {
     if (!isRunning) {
         isRunning = true;
-        document.getElementById("btn").textContent = "остановить";
-        startTest();
+        document.getElementById("btn").textContent = "стоп";
+        await startTest();
     } else {
         isRunning = false;
-        document.getElementById("btn").textContent = "начать";
-        stopTest();
+        controller.abort();
+        startCooldown(5);
     }
 };
 </script>
